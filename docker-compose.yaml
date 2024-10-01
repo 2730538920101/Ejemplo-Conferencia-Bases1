@@ -1,0 +1,54 @@
+version: '3'
+
+services:
+
+  # Servicio para la base de datos
+  database:
+    build:
+      context: ./database
+      dockerfile: Dockerfile
+    image: carlosmz87/conferencia_bases1_database:latest
+    container_name: conferencia_bases1_database_container
+    volumes:
+      - conferencia_bases1_data:/var/lib/mysql
+    ports:
+      - "${DATABASE_PORT}:${DATABASE_PORT}"
+    networks:
+      - conferencia_bases1_network
+    environment:
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+      - MYSQL_DATABASE=${MYSQL_DATABASE}
+      - MYSQL_USER=${MYSQL_USER}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -P ${DATABASE_PORT} --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+  # Servicio para el backend
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    image: carlosmz87/conferencia_bases1_backend:latest
+    container_name: conferencia_bases1_container
+    ports:
+      - "${APP_PORT}:${APP_PORT}"
+    networks:
+      - conferencia_bases1_network
+    environment:
+      - APP_PORT=${APP_PORT}
+      - DB_DATABASE=${MYSQL_DATABASE}
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD} 
+      - DB_HOST=${DB_HOST}   
+    depends_on:
+      database:
+        condition: service_healthy
+
+volumes:
+  conferencia_bases1_data:
+
+networks:
+  conferencia_bases1_network:
